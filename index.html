@@ -2,146 +2,46 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <title>World's Best Driver Tiffin Ohio</title>
-  <meta name="description" content="World's Best Driver Tiffin Ohio — photo and story." />
-  <meta name="robots" content="index,follow" />
-
-  <!-- Open Graph (helps when you share the link) -->
-  <meta property="og:title" content="World's Best Driver Tiffin Ohio" />
-  <meta property="og:description" content="Photo + short blurb for World's Best Driver in Tiffin, Ohio." />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://cionelo.github.io/worlds-best-driver-in-tiffin-ohio/" />
-  <meta property="og:image" content="https://i.imgur.com/iK0upBa.png" />
-
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="World's Best Driver Tiffin Ohio" />
-  <meta name="twitter:description" content="Photo + short blurb for World's Best Driver in Tiffin, Ohio." />
-  <meta name="twitter:image" content="https://i.imgur.com/iK0upBa.png" />
-
-  <!-- JSON-LD structured data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    "name": "World's Best Driver Tiffin Ohio",
-    "description": "Photo and short write-up for World's Best Driver in Tiffin, Ohio.",
-    "image": "https://i.imgur.com/iK0upBa.png",
-    "url": "https://YOUR-USERNAME.github.io/worlds-best-driver-tiffin-ohio/"
-  }
-  </script>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>World’s Best Driver — Gate</title>
+  <meta property="og:url" content="/" />
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; margin: 2rem auto; max-width: 760px; padding: 0 1rem; }
-    header { margin-bottom: 1rem; }
-    figure { margin: 0; }
-    img { max-width: 100%; height: auto; border-radius: 12px; }
-    .cta { margin-top: 1rem; display: inline-block; padding: .6rem 1rem; border-radius: 10px; border: 1px solid #ddd; text-decoration: none; }
-    footer { margin-top: 2rem; font-size: .9rem; color: #444; }
+    body{margin:0;font:16px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#000;color:#fff}
+    body.wbd-gated{overflow:hidden;height:100vh}
+    .gate-overlay{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:9999;opacity:1;transition:opacity .15s ease}
+    .gate-card{background:#fff;color:#111;padding:1.1rem 1.25rem;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);max-width:520px;margin:1rem;text-align:center}
+    .gate-title{font-size:1.15rem;font-weight:700;margin:0 0 .25rem}
+    .gate-btn{display:inline-block;margin-top:.75rem;padding:.6rem 1rem;border-radius:10px;border:1px solid #ddd;text-decoration:none;cursor:pointer}
+    .gate-fade{opacity:0}
   </style>
-<style id="wbd-gate-styles">
-/* --- Mini “login” gate (World's Best Driver) --- */
-body.wbd-gated{overflow:hidden;height:100vh}
-.gate-overlay{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:9999;opacity:1;transition:opacity .15s ease}
-.gate-card{background:#fff;padding:1.1rem 1.25rem;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.15);max-width:520px;margin:1rem;text-align:center}
-.gate-title{font-size:1.15rem;font-weight:700;margin:0 0 .25rem}
-.gate-btn{display:inline-block;margin-top:.75rem;padding:.6rem 1rem;border-radius:10px;border:1px solid #ddd;text-decoration:none;cursor:pointer}
-.gate-hidden{display:none}
-.gate-fade{opacity:0}
-</style>
 </head>
 <body>
-  <header>
-    <h1>World's Best Driver Tiffin Ohio</h1>
-    <p>This is Amilia. Amilia is a great driver. In fact, Amilia is the world's greatest driver, the world's best driver one could even say. Amilia exists therefore the worlds best driver must exist because Amilia is the world's best driver.</p>
-    <p>This page helps Google associate the exact phrase <strong>World's Best Driver Tiffin Ohio</strong> with this image (of the world's best driver) and link.</p>
-  </header>
-
-  <main>
-    <figure>
-      <!-- Preferred: direct Imgur file link -->
-      <img src="https://i.imgur.com/iK0upBa.png" alt="World's Best Driver Tiffin Ohio" />
-      <figcaption>World's Best Driver — Tiffin, Ohio.</figcaption>
-    </figure>
-    <p>See the original image on Imgur here:</p>
-    <p><a class="cta" href="https://i.imgur.com/iK0upBa.png" rel="noopener">Open the Imgur Image</a></p>
-
-    <p>
-      Extra context for indexing: This simple page is intentionally titled and written around the unique phrase 
-      <em>World's Best Driver Tiffin Ohio</em> so search engines can surface the correct image.
-    </p>
-  </main>
-
-  <footer>
-  </footer>
-<!-- WBD “login” dialog gate START -->
-<div id="gate" class="gate-overlay" role="dialog" aria-modal="true" aria-labelledby="gate-title">
-  <div class="gate-card">
-    <h2 id="gate-title" class="gate-title">Where can you find the worlds best driver?</h2>
-    <button id="gate-btn" class="gate-btn" autofocus>Tiffin Ohio</button>
+  <!-- Gate that always shows on index -->
+  <div id="gate" class="gate-overlay" role="dialog" aria-modal="true" aria-labelledby="gate-title">
+    <div class="gate-card">
+      <h2 id="gate-title" class="gate-title">Where does the world’s best driver live?</h2>
+      <button id="gate-btn" class="gate-btn" autofocus>Tiffin Ohio</button>
+    </div>
   </div>
-</div>
-<script>
-(function () {
-  const KEY = 'wbd_gate_passed_v1';
 
-  // Optional: allow manual reset via ?wbd_reset=1
-  const params = new URLSearchParams(location.search);
-  if (params.get('wbd_reset') === '1') {
-    try { localStorage.removeItem(KEY); } catch (e) {}
-  }
-
-  // Use the site’s homepage from og:url; fall back to root
-  const HOME_URL = document.querySelector('meta[property="og:url"]')?.getAttribute('content') || '/';
-  const GAME_URL = 'tiffin-runner.html';
-
-  const gate = document.getElementById('gate');
-  const btn = document.getElementById('gate-btn');
-
-  function passedGate() {
-    try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; }
-  }
-  function markPassed() {
-    try { localStorage.setItem(KEY, '1'); } catch (e) {}
-  }
-
-  function showGate() {
+  <script>
+  (function () {
+    // Lock page immediately (no peeking)
     document.body.classList.add('wbd-gated');
-    gate.classList.remove('gate-hidden');
-    btn?.focus();
-  }
-  function hideGate() {
-    document.body.classList.remove('wbd-gated');
-    gate.classList.add('gate-hidden');
-  }
+    const gate = document.getElementById('gate');
+    const btn = document.getElementById('gate-btn');
+    const GAME_URL = 'tiffin-runner-v2.html';
 
-  // Initialize gate logic
-  document.addEventListener('DOMContentLoaded', function(){
-    if (passedGate()) {
-      hideGate();             // Don't show the overlay if already passed
-    } else {
-      showGate();             // Block page until answered
-    }
-  });
-
-  function goHome() { window.location.href = HOME_URL; }
-
-  function activate() {
-    markPassed();             // Remember success BEFORE navigation
-    gate.classList.add('gate-fade');
-    setTimeout(()=>{ window.location.href = GAME_URL; }, 120);
-  }
-
-  btn.addEventListener('click', activate);
-  btn.addEventListener('keyup', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') activate();
-  });
-
-  // Gate cannot be dismissed otherwise
-})();
-</script>
-<!-- WBD “login” dialog gate END -->
+    function goGame(){ window.location.href = GAME_URL; }
+    btn.addEventListener('click', ()=>{
+      gate.classList.add('gate-fade');
+      setTimeout(goGame, 120);
+    });
+    btn.addEventListener('keyup', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { gate.classList.add('gate-fade'); setTimeout(goGame, 120); }
+    });
+    window.addEventListener('load', () => btn?.focus());
+  })();
+  </script>
 </body>
 </html>
