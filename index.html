@@ -2,21 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>World’s Best Driver — Gate</title>
-  <meta property="og:url" content="/" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>World’s Best Driver — Home</title>
+  <!-- Keep your OG tags so the game can redirect back here on win -->
+  <meta property="og:url" content="https://cionelo.github.io/worlds-best-driver-in-tiffin-ohio/" />
   <style>
     body{margin:0;font:16px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#000;color:#fff}
-    body.wbd-gated{overflow:hidden;height:100vh}
     .gate-overlay{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:9999;opacity:1;transition:opacity .15s ease}
+    .gate-hidden{display:none}
     .gate-card{background:#fff;color:#111;padding:1.1rem 1.25rem;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);max-width:520px;margin:1rem;text-align:center}
     .gate-title{font-size:1.15rem;font-weight:700;margin:0 0 .25rem}
     .gate-btn{display:inline-block;margin-top:.75rem;padding:.6rem 1rem;border-radius:10px;border:1px solid #ddd;text-decoration:none;cursor:pointer}
-    .gate-fade{opacity:0}
+    /* Example home content below gate */
+    .home{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px}
+    .home .card{max-width:800px;background:#111;border:1px solid #333;border-radius:16px;padding:24px}
   </style>
 </head>
 <body>
-  <!-- Gate that always shows on index -->
+  <!-- Gate appears ONLY if you have not won the game yet -->
   <div id="gate" class="gate-overlay" role="dialog" aria-modal="true" aria-labelledby="gate-title">
     <div class="gate-card">
       <h2 id="gate-title" class="gate-title">Where does the world’s best driver live?</h2>
@@ -24,23 +27,45 @@
     </div>
   </div>
 
+  <!-- Put your existing homepage markup below; it will be visible when gate is hidden -->
+  <main class="home">
+    <div class="card">
+      <h1>World’s Best Driver — Tiffin, Ohio</h1>
+      <p>This is your homepage content. It shows after winning the game once.</p>
+    </div>
+  </main>
+
   <script>
   (function () {
-    // Lock page immediately (no peeking)
-    document.body.classList.add('wbd-gated');
-    const gate = document.getElementById('gate');
-    const btn = document.getElementById('gate-btn');
-    const GAME_URL = 'tiffin-runner-v2b.html';
+    var WIN_KEY = 'wbd_won_v1';             // set by the game on win
+    var GAME_URL = 'tiffin-runner-v3.html'; // relative path to the game file
+    var gate = document.getElementById('gate');
+    var btn = document.getElementById('gate-btn');
+
+    // If returned from the game with ?won=1, set the flag
+    (function syncParam(){
+      try {
+        var params = new URLSearchParams(location.search);
+        if (params.get('won') === '1') localStorage.setItem(WIN_KEY, '1');
+      } catch(e){}
+    })();
+
+    function hasWon(){
+      try { return localStorage.getItem(WIN_KEY) === '1'; } catch(e){ return false; }
+    }
+    function showGate(){ gate.classList.remove('gate-hidden'); }
+    function hideGate(){ gate.classList.add('gate-hidden'); }
+
+    if (hasWon()) hideGate(); else showGate();
 
     function goGame(){ window.location.href = GAME_URL; }
-    btn.addEventListener('click', ()=>{
-      gate.classList.add('gate-fade');
-      setTimeout(goGame, 120);
+    btn.addEventListener('click', function(){
+      gate.style.opacity = '0'; setTimeout(goGame, 120);
     });
-    btn.addEventListener('keyup', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { gate.classList.add('gate-fade'); setTimeout(goGame, 120); }
+    btn.addEventListener('keyup', function(e){
+      if (e.key === 'Enter' || e.key === ' ') { gate.style.opacity = '0'; setTimeout(goGame, 120); }
     });
-    window.addEventListener('load', () => btn?.focus());
+    window.addEventListener('load', function(){ try{ btn.focus(); }catch(e){} });
   })();
   </script>
 </body>
