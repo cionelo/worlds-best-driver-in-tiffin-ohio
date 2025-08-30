@@ -226,14 +226,14 @@
           var oy = o.y + (o.h - oh)/2;
           if(rectsOverlap(px, py, pw, ph, ox, oy, ow, oh)){ die('corn'); return; }
         } else {
-        // FLAT pothole hitbox: a 2px-tall strip at the ground (very forgiving)
-        var BAND_H = 2 * DPR;              // tweak to 1 * DPR for ultra-flat
-        var bandTop = groundY - BAND_H;    // sits right on the road
-        if (rectsOverlap(px, bandTop, pw, BAND_H, o.x, o.y, o.w, o.h)) {
-          die('pothole');
-          return;
+          // FLAT pothole hitbox: a 2px-tall strip at the ground (very forgiving)
+          var BAND_H = 2 * DPR;              // tweak to 1 * DPR for ultra-flat
+          var bandTop = groundY - BAND_H;    // sits right on the road
+          if (rectsOverlap(px, bandTop, pw, BAND_H, o.x, o.y, o.w, o.h)) {
+            die('pothole');
+            return;
+          }
         }
-      }
 
 
       score += dt*100;
