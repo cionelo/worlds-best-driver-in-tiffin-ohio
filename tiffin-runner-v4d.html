@@ -226,11 +226,15 @@
           var oy = o.y + (o.h - oh)/2;
           if(rectsOverlap(px, py, pw, ph, ox, oy, ow, oh)){ die('corn'); return; }
         } else {
-          // Pothole contact only near ground under player's shrunken box
-          var bandTop = groundY - POTH_GROUND_PAD*DPR;
-          if(rectsOverlap(px, bandTop, pw, POTH_GROUND_PAD*DPR + 4*DPR, o.x, o.y, o.w, o.h)){ die('pothole'); return; }
+        // FLAT pothole hitbox: a 2px-tall strip at the ground (very forgiving)
+        var BAND_H = 2 * DPR;              // tweak to 1 * DPR for ultra-flat
+        var bandTop = groundY - BAND_H;    // sits right on the road
+        if (rectsOverlap(px, bandTop, pw, BAND_H, o.x, o.y, o.w, o.h)) {
+          die('pothole');
+          return;
         }
       }
+
 
       score += dt*100;
       document.getElementById('time').textContent=elapsed.toFixed(1);
