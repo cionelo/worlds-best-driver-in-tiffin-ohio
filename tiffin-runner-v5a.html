@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tiffin Run — v5a (direct-hit potholes)</title>
+  <style>
+    html, body { margin:0; height:100%; background:#0b0f11; font-family:system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, Noto Sans, "Apple Color Emoji", "Segoe UI Emoji"; color:#e8f0f2 }
+    .wrap { display:flex; flex-direction:column; align-items:center; gap:10px; padding:16px }
+    canvas { background:linear-gradient(#80b7ff 0 46%, #9bd18f 46%); border:2px solid #24313a; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.4) }
+    .hud { display:flex; gap:16px; align-items:center; font-weight:600; letter-spacing:.3px }
+    .btn { background:#133c55; border:1px solid #2c5870; color:#d6f0ff; padding:8px 12px; border-radius:8px; cursor:pointer }
+    .btn:hover { filter:brightness(1.1) }
+    .note { opacity:.8; font-size:12px }
+    .bad { color:#ffb0b0 }
+    .good { color:#b7ffb7 }
+    .title { font-weight:700; font-size:18px; opacity:.9 }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">Tiffin Run — v5a (potholes require a direct wheel hit)</div>
+    <canvas id="game" width="640" height="400"></canvas>
+    <div class="hud">
+      <span>Time: <span id="time">0.0</span>s</span>
+      <span>Speed: <span id="speed">0</span></span>
+      <span>Best: <span id="best">0.0</span>s</span>
+      <button id="restart" class="btn">Restart</button>
+    </div>
+    <div class="note">Controls: Arrow keys or WASD to steer. Win at 20s without crashing.</div>
+    <div class="note">This build changes pothole collisions: you only crash if a wheel passes over the pothole’s center band.</div>
+  </div>
+
+  <script>
+  // ===== CONFIG =====
+  const CFG = {
+    CANVAS_W: 640,
+    CANVAS_H: 400,
+    GROUND_Y: 360,
+    ROAD_L: 120,
+    ROAD_R: 520,
+    LANE_W: 80,
+
+    // Car
+    CAR_W: 44,
+    CAR_H: 26,
+    CAR_COLOR: '#2af1ff',
+    CAR_FG_X: 8,
+    CAR_FG_Y: 4,
+
+    // Motion
+    BASE_SPEED: 2.4,
+    SPEED_RAMP: 0.015,
+    MAX_SPEED: 6.5,
+
+    // Win condition
+    WIN_SECONDS: 20.0,
+
+    // Spawn rates (per second)
+    CORN_RATE: 1.3,
+    POTHOLE_RATE: 0.9,
+
+    // Corn visuals & hitbox
+    CORN_VIS_H: 40,
+    CORN_HB_H: 14,
+    CORN_W: 14,
+    CORN_COLOR: '#2f8c3d',
+
+    // Pothole visuals vs physics
+    POT_VIS_H: 10,                 // visual height
+    POT_HB_H: 2,                   // thin collision band near ground
+    POT_W_MIN: 26,
+    POT_W_MAX: 46,
+    POT_COLOR: '#3b3b3b',
+    POT_LIP: '#1e1e1e',
+    POT_SIDE_FG: 10,               // trim sides so skims don't count
+
+    // Direct-hit tuning
+    POT_DIRECT_BAND: 0.60,         // central fraction that counts as a 'direct' hit (e.g., 0.60 = middle 60%)
+    WHEEL_INSET: 6,                // pixels inset from car edges for 'wheel' x positions
+
+    // End-game difficulty bump (last 5s)
+    ENDGAME_T: 5.0,
+    END_CORNFAC: 1.15,
+    END_POTFAC: 1.15,
+  };
+
+  // ===== Setup =====
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const timeEl = document.getElementById('time');
+  const speedEl = document.getElementById('speed');
+  const bestEl = document.getElementById('best');
+  const restartBtn = document.getElementById('restart');
+
+  let bestTime = +localStorage.getItem('tiffin_best_v5a') || 0;
+  bestEl.textContent = bestTime.toFixed(1);
+
+  let state;
+  const reset = () => {
+    state = {
+      running: true,
+      t: 0,
+      speed: CFG.BASE_SPEED,
+      car: {
+        x: (CFG.ROAD_L + CFG.ROAD_R) / 2 - CFG.CAR_W/2,
+        y: CFG.GROUND_Y - CFG.CAR_H,
+        w: CFG.CAR_W,
+        h: CFG.CAR_H,
+        vx: 0,
+        ax: 0,
+      },
+      objs: [],
+      spawnAccCorn: 0,
+      spawnAccPot: 0,
+      msg: '',
+    };
+  };
+  reset();
+
+  // Input
+  const keys = new Set();
+  addEventListener('keydown', e => { keys.add(e.key.toLowerCase()); if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key)) e.preventDefault(); });
+  addEventListener('keyup',   e => { keys.delete(e.key.toLowerCase()); });
+  restartBtn.onclick = () => { reset(); };
+
+  // Helpers
+  const rand = (a,b)=> a + Math.random()*(b-a);
+
+  // Spawners
+  function spawnCorn() {
+    const side = Math.random()<0.5 ? 'L' : 'R';
+    const x = side==='L' ? CFG.ROAD_L - CFG.CORN_W - rand(0,18) : CFG.ROAD_R + rand(0,18);
+    const w = CFG.CORN_W;
+    const visH = CFG.CORN_VIS_H;
+    const hbH  = CFG.CORN_HB_H;
+    state.objs.push({ type:'corn', x, w, visH, hbH, y: CFG.GROUND_Y - visH });
+  }
+
+  function spawnPothole() {
+    const lane = Math.floor(rand(0, (CFG.ROAD_R - CFG.ROAD_L)/CFG.LANE_W));
+    const w = rand(CFG.POT_W_MIN, CFG.POT_W_MAX);
+    const x = CFG.ROAD_L + lane*CFG.LANE_W + (CFG.LANE_W - w)/2 + rand(-10, 10);
+    state.objs.push({ type:'pothole', x, w, visH: CFG.POT_VIS_H, hbH: CFG.POT_HB_H, y: CFG.GROUND_Y - CFG.POT_VIS_H });
+  }
+
+  // Collision helpers
+  function carRect() {
+    return {
+      l: state.car.x + CFG.CAR_FG_X,
+      r: state.car.x + state.car.w - CFG.CAR_FG_X,
+      t: state.car.y + CFG.CAR_FG_Y,
+      b: state.car.y + state.car.h - CFG.CAR_FG_Y,
+    };
+  }
+
+  function collideCorn(c, o) {
+    const oxL = o.x, oxR = o.x + o.w;
+    const hbTop = CFG.GROUND_Y - o.hbH;
+    const xOverlap = c.l < oxR && c.r > oxL;
+    const yOverlap = c.b > hbTop && c.t < CFG.GROUND_Y;
+    return xOverlap && yOverlap;
+  }
+
+  // New: only crash if a 'wheel' crosses the pothole's central band
+  function collidePothole(c, o) {
+    // Quick vertical check: car bottom must dip into the thin ground band
+    const carBottom = c.b;
+    const potTopHB = CFG.GROUND_Y - o.hbH;
+    if (carBottom <= potTopHB) return false;
+
+    // Horizontal band that counts as a direct hit
+    const potL = o.x + CFG.POT_SIDE_FG;
+    const potR = o.x + o.w - CFG.POT_SIDE_FG;
+    if (potL >= potR) return false;
+
+    const innerWidth = potR - potL;
+    const bandHalf = (CFG.POT_DIRECT_BAND * innerWidth) / 2;
+    const potCenter = potL + innerWidth/2;
+    const bandL = potCenter - bandHalf;
+    const bandR = potCenter + bandHalf;
+
+    // Wheel x-positions
+    const leftWheelX  = c.l + CFG.WHEEL_INSET;
+    const rightWheelX = c.r - CFG.WHEEL_INSET;
+
+    const leftHit  = leftWheelX  > bandL && leftWheelX  < bandR;
+    const rightHit = rightWheelX > bandL && rightWheelX < bandR;
+
+    return leftHit || rightHit;
+  }
+
+  // Update & Draw
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.033, (now - last)/1000);
+    last = now;
+
+    if (state.running) {
+      // time & speed
+      state.t += dt;
+      state.speed = Math.min(CFG.MAX_SPEED, state.speed + CFG.SPEED_RAMP * dt);
+
+      // spawns (slight ramp near the end)
+      const endPhase = Math.max(0, state.t - (CFG.WIN_SECONDS - CFG.ENDGAME_T));
+      const endFrac = Math.min(1, endPhase / CFG.ENDGAME_T);
+      const cornRate = CFG.CORN_RATE * (1 + endFrac*(CFG.END_CORNFAC-1));
+      const potRate  = CFG.POTHOLE_RATE * (1 + endFrac*(CFG.END_POTFAC-1));
+
+      state.spawnAccCorn += cornRate * dt;
+      state.spawnAccPot  += potRate  * dt;
+
+      while (state.spawnAccCorn > 1) { spawnCorn(); state.spawnAccCorn -= 1; }
+      while (state.spawnAccPot  > 1) { spawnPothole(); state.spawnAccPot  -= 1; }
+
+      // move objects towards car
+      for (const o of state.objs) o.y += state.speed;
+
+      // input & clamp
+      const left  = keys.has('arrowleft') || keys.has('a');
+      const right = keys.has('arrowright') || keys.has('d');
+      const steer = 220;
+      state.car.x += ((right?1:0) - (left?1:0)) * steer * dt;
+      state.car.x = Math.max(CFG.ROAD_L, Math.min(CFG.ROAD_R - state.car.w, state.car.x));
+
+      // prune offscreen
+      state.objs = state.objs.filter(o => o.y < CFG.CANVAS_H + 50);
+
+      // collisions
+      const c = carRect();
+      for (const o of state.objs) {
+        if (o.type === 'corn'    && collideCorn(c, o))  { crash('You clipped the corn!'); break; }
+        if (o.type === 'pothole' && collidePothole(c,o)) { crash('Direct hit on a pothole!'); break; }
+      }
+
+      // win
+      if (state.running && state.t >= CFG.WIN_SECONDS) {
+        state.running = false;
+        state.msg = 'You made it through the fields!';
+        if (state.t > bestTime) { bestTime = state.t; localStorage.setItem('tiffin_best_v5a', bestTime); }
+      }
+
+      // HUD
+      timeEl.textContent = Math.min(state.t, CFG.WIN_SECONDS).toFixed(1);
+      speedEl.textContent = state.speed.toFixed(1);
+      bestEl.textContent = bestTime.toFixed(1);
+    }
+
+    draw();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  function crash(m) { state.running = false; state.msg = m; }
+
+  // Drawing
+  function draw() {
+    const W = CFG.CANVAS_W, H = CFG.CANVAS_H;
+    ctx.clearRect(0,0,W,H);
+
+    // ground strip
+    ctx.fillStyle = '#649e5e';
+    ctx.fillRect(0, CFG.GROUND_Y, W, H - CFG.GROUND_Y);
+
+    // road
+    ctx.fillStyle = '#2a2a2a';
+    ctx.fillRect(CFG.ROAD_L, 0, CFG.ROAD_R - CFG.ROAD_L, H);
+
+    // lane markers
+    ctx.strokeStyle = '#bdbdbd';
+    ctx.lineWidth = 2;
+    for (let x = CFG.ROAD_L + CFG.LANE_W; x < CFG.ROAD_R; x += CFG.LANE_W) {
+      dashedLine(x, 0, x, H, 10, 10);
+    }
+
+    // objects
+    for (const o of state.objs) {
+      if (o.type === 'corn') drawCorn(o);
+      if (o.type === 'pothole') drawPothole(o);
+    }
+
+    // car
+    ctx.fillStyle = CFG.CAR_COLOR;
+    ctx.fillRect(state.car.x, state.car.y, state.car.w, state.car.h);
+
+    if (!state.running && state.msg) {
+      banner(state.msg, state.t >= CFG.WIN_SECONDS ? 'good' : 'bad');
+      subtext('Press Restart');
+    }
+  }
+
+  function dashedLine(x1,y1,x2,y2,seg, gap) {
+    ctx.save();
+    ctx.setLineDash([seg, gap]);
+    ctx.beginPath();
+    ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawCorn(o) {
+    // stalk
+    ctx.fillStyle = CFG.CORN_COLOR;
+    ctx.fillRect(o.x, CFG.GROUND_Y - o.visH, o.w, o.visH);
+    // tassel hint
+    ctx.fillStyle = '#77c36a';
+    ctx.fillRect(o.x - 3, CFG.GROUND_Y - o.visH - 6, o.w + 6, 6);
+  }
+
+  function drawPothole(o) {
+    const y = CFG.GROUND_Y - o.visH;
+    ctx.fillStyle = CFG.POT_COLOR;
+    roundRect(o.x, y, o.w, o.visH, 6, true, false);
+    ctx.fillStyle = CFG.POT_LIP;
+    roundRect(o.x+2, y+o.visH-4, o.w-4, 3, 3, true, false);
+    // debug band (central band that counts as direct hit)
+    // debugBand();
+    // Uncomment to visualize:
+    // const potL = o.x + CFG.POT_SIDE_FG;
+    // const potR = o.x + o.w - CFG.POT_SIDE_FG;
+    // const innerWidth = potR - potL;
+    // const bandHalf = (CFG.POT_DIRECT_BAND * innerWidth) / 2;
+    // const potCenter = potL + innerWidth/2;
+    // debugBand(potCenter - bandHalf, CFG.GROUND_Y - o.hbH, 2*bandHalf, o.hbH, 'rgba(255,0,0,.18)');
+  }
+
+  function roundRect(x, y, w, h, r, fill, stroke) {
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.arcTo(x+w, y,   x+w, y+h, r);
+    ctx.arcTo(x+w, y+h, x,   y+h, r);
+    ctx.arcTo(x,   y+h, x,   y,   r);
+    ctx.arcTo(x,   y,   x+w, y,   r);
+    ctx.closePath();
+    if (fill) ctx.fill();
+    if (stroke) ctx.stroke();
+  }
+
+  function banner(text, mood='good') {
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = mood==='good' ? 'rgba(20,60,20,.85)' : 'rgba(80,20,20,.85)';
+    ctx.fillRect(60, 140, 520, 80);
+    ctx.restore();
+
+    ctx.fillStyle = '#fff';
+    ctx.font = '20px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(text, 320, 186);
+  }
+
+  function subtext(text) {
+    ctx.fillStyle = '#e0e0e0';
+    ctx.font = '12px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(text, 320, 208);
+  }
+
+  function debugBand(x,y,w,h, color) {
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.fillRect(x,y,w,h);
+    ctx.restore();
+  }
+  </script>
+</body>
+</html>
